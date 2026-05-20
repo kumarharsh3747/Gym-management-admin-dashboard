@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GymOS Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--card:#20243a;--border:#2a2e4a;
+  --accent:#6c63ff;--accent2:#00d4aa;--accent3:#ff6b6b;--accent4:#ffa94d;
+  --text:#e8eaf6;--muted:#8b90b0;--dim:#3a3f5c;
+  --green:#00d4aa;--red:#ff6b6b;--yellow:#ffa94d;--blue:#4fc3f7;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;min-height:100vh;overflow-x:hidden}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif}
+.app{display:flex;min-height:100vh}
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:100}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.sidebar-logo h1{font-size:16px;font-weight:700;color:var(--text)}
+.sidebar-logo span{font-size:11px;color:var(--muted);display:block;font-weight:400;font-family:'DM Sans',sans-serif}
+.nav-section{padding:12px 0}
+.nav-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:0 16px 8px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;color:var(--muted);transition:all .15s;font-size:13.5px;border-left:3px solid transparent;margin:1px 0}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{background:rgba(108,99,255,.12);color:var(--accent);border-left-color:var(--accent);font-weight:500}
+.nav-item .ni{font-size:16px;width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--accent3);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+/* TOPBAR */
+.topbar{position:fixed;top:0;left:220px;right:0;height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:99}
+.topbar-title{font-size:16px;font-weight:600;color:var(--text);flex:1}
+.topbar-gym{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer}
+.topbar-gym span{font-size:13px;color:var(--text);font-weight:500}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+/* MAIN */
+.main{margin-left:220px;margin-top:56px;flex:1;padding:24px;min-height:calc(100vh - 56px)}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-sm{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+/* STAT CARDS */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c,var(--accent))}
+.stat-card:hover{border-color:var(--c,var(--accent));transform:translateY(-2px)}
+.stat-card.selected{border-color:var(--c,var(--accent));background:rgba(108,99,255,.07)}
+.stat-card.selected.green{background:rgba(0,212,170,.07)}
+.stat-card.selected.red{background:rgba(255,107,107,.07)}
+.stat-card.selected.yellow{background:rgba(255,169,77,.07)}
+.stat-icon{width:38px;height:38px;border-radius:9px;background:rgba(108,99,255,.15);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px}
+.stat-val{font-size:28px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--text)}
+.stat-label{font-size:12px;color:var(--muted);margin-top:4px}
+.stat-delta{font-size:11px;margin-top:8px;color:var(--green)}
+/* MEMBER CARDS */
+.members-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-top:16px}
+.member-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;transition:all .2s;position:relative}
+.member-card:hover{border-color:var(--dim);transform:translateY(-1px)}
+.member-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.member-photo{width:50px;height:50px;border-radius:50%;object-fit:cover;background:var(--dim);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--accent);border:2px solid var(--border)}
+.member-info h3{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.member-id{font-size:11px;color:var(--accent);font-family:monospace;margin-top:2px}
+.member-phone{font-size:12px;color:var(--muted);margin-top:4px}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;gap:4px;flex-shrink:0}
+.badge-active{background:rgba(0,212,170,.15);color:var(--green)}
+.badge-expired{background:rgba(255,107,107,.15);color:var(--red)}
+.badge-soon{background:rgba(255,169,77,.15);color:var(--yellow)}
+.badge-pending{background:rgba(75,120,255,.15);color:var(--blue)}
+.member-pkg{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.member-pkg strong{color:var(--text)}
+.progress-wrap{margin-bottom:10px}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px}
+.progress-bar{background:var(--dim);border-radius:4px;height:5px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .3s}
+.member-dates{font-size:11px;color:var(--muted);margin-bottom:12px;display:flex;gap:6px;align-items:center}
+.member-actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn{border:none;border-radius:7px;padding:6px 10px;font-size:12px;cursor:pointer;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{background:var(--dim);color:var(--text);border-color:var(--dim)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#7c74ff}
+.btn-danger{background:rgba(255,107,107,.12);color:var(--red);border:1px solid rgba(255,107,107,.2)}
+.btn-danger:hover{background:rgba(255,107,107,.2)}
+.btn-success{background:rgba(0,212,170,.12);color:var(--green);border:1px solid rgba(0,212,170,.2)}
+.btn-success:hover{background:rgba(0,212,170,.2)}
+.btn-lg{padding:10px 20px;font-size:14px;border-radius:9px}
+/* SEARCH & FILTERS */
+.filters-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.search-wrap{position:relative;flex:1;min-width:220px}
+.search-wrap input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 12px 9px 36px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border .15s}
+.search-wrap input:focus{border-color:var(--accent)}
+.search-wrap input::placeholder{color:var(--muted)}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px}
+select{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer}
+select:focus{border-color:var(--accent)}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:28px}
+.modal-lg{max-width:700px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.modal-header h2{font-size:18px;color:var(--text)}
+.modal-close{background:var(--dim);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:var(--muted);font-size:18px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.modal-close:hover{background:var(--border);color:var(--text)}
+.form-group{margin-bottom:16px}
+.form-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.form-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 14px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border .15s}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--muted)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.toggle-group{display:flex;gap:10px;margin-bottom:20px}
+.toggle-option{flex:1;padding:10px;border:1px solid var(--border);border-radius:9px;text-align:center;cursor:pointer;transition:.15s;font-size:13px;color:var(--muted)}
+.toggle-option.active{border-color:var(--accent);color:var(--accent);background:rgba(108,99,255,.1);font-weight:500}
+/* TABS */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:20px;font-weight:700;color:var(--text)}
+/* CHART CONTAINERS */
+.chart-wrap{position:relative;height:200px}
+/* SECTION */
+.section-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+/* RECENT TABLE */
+.rtable{width:100%;border-collapse:collapse}
+.rtable th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:500}
+.rtable td{padding:10px 12px;border-bottom:1px solid rgba(42,46,74,.5);font-size:13px;vertical-align:middle}
+.rtable tr:hover td{background:rgba(255,255,255,.02)}
+/* QR */
+.qr-box{background:var(--dim);border-radius:12px;width:160px;height:160px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);flex-direction:column;gap:8px}
+/* PENDING CARD */
+.pending-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:12px}
+.pending-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.pending-field{font-size:12px}
+.pending-field span{color:var(--muted);display:block;margin-bottom:2px}
+.pending-field strong{color:var(--text);font-size:13px}
+/* PACKAGE CARD */
+.pkg-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;cursor:pointer;transition:.2s}
+.pkg-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.pkg-price{font-size:30px;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--accent)}
+.pkg-per{font-size:12px;color:var(--muted)}
+.pkg-feature{font-size:12px;color:var(--muted);padding:4px 0;display:flex;gap:6px;align-items:center}
+.pkg-feature::before{content:'✓';color:var(--green)}
+/* TRAINER */
+.trainer-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.trainer-avatar{width:64px;height:64px;border-radius:50%;background:var(--dim);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--accent2);border:2px solid var(--border)}
+/* PAYMENT */
+.pay-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(42,46,74,.5)}
+.pay-row:last-child{border-bottom:none}
+/* ANNOUNCEMENT */
+.ann-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:12px;padding:16px;margin-bottom:12px}
+.ann-meta{font-size:11px;color:var(--muted);margin-top:8px}
+/* SETTINGS */
+.settings-section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px}
+.settings-section h3{font-size:15px;font-weight:600;margin-bottom:18px;color:var(--text)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(42,46,74,.3)}
+.settings-row:last-child{border-bottom:none}
+.toggle-sw{width:40px;height:22px;background:var(--dim);border-radius:20px;position:relative;cursor:pointer;transition:.2s;flex-shrink:0}
+.toggle-sw.on{background:var(--accent)}
+.toggle-sw::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s}
+.toggle-sw.on::after{left:21px}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.pager{display:flex;gap:8px;justify-content:center;margin-top:20px;align-items:center}
+.pager-btn{background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px 12px;cursor:pointer;font-size:13px;transition:.15s}
+.pager-btn:hover,.pager-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chip{background:var(--dim);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--muted)}
+.divider{border:none;border-top:1px solid var(--border);margin:18px 0}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">🏋</div>
+      <div>
+        <h1>IronFit</h1>
+        <span>Management System</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <div class="nav-item active" onclick="navigate('dashboard')"><span class="ni">📊</span>Dashboard</div>
+      <div class="nav-item" onclick="navigate('members')"><span class="ni">👥</span>Members</div>
+      <div class="nav-item" onclick="navigate('pending')"><span class="ni">⏳</span>Pending<span class="nav-badge" id="pending-count">3</span></div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Management</div>
+      <div class="nav-item" onclick="navigate('packages')"><span class="ni">📦</span>Packages</div>
+      <div class="nav-item" onclick="navigate('trainers')"><span class="ni">💪</span>Trainers</div>
+      <div class="nav-item" onclick="navigate('payments')"><span class="ni">💳</span>Payments</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Communication</div>
+      <div class="nav-item" onclick="navigate('announcements')"><span class="ni">📢</span>Announcements</div>
+    </div>
+    <div class="nav-section" style="margin-top:auto">
+      <div class="nav-item" onclick="navigate('settings')"><span class="ni">⚙️</span>Settings</div>
+    </div>
+  </nav>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <span class="topbar-title" id="page-title">Dashboard</span>
+    <div class="topbar-gym" onclick="navigate('settings')">
+      <div style="width:24px;height:24px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">🏋</div>
+      <span>IronFit Gym, Patna</span>
+    </div>
+    <div class="avatar">AD</div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main-content"></main>
+</div>
+
+<!-- MODALS -->
+<div id="modal-container"></div>
+
+<script>
+// ===== DATA =====
+const members = [
+  {id:'MBR001',name:'Rahul Kumar',phone:'9876543210',address:'Boring Road, Patna',age:28,height:175,weight:78,photo:'',package:'Monthly',startDate:'2025-05-01',endDate:'2025-06-01',type:'General',trainer:false,status:'active'},
+  {id:'MBR002',name:'Priya Singh',phone:'9876543211',address:'Kankarbagh, Patna',age:24,height:162,weight:55,photo:'',package:'Quarterly',startDate:'2025-03-01',endDate:'2025-06-01',type:'General',trainer:true,status:'expiring'},
+  {id:'MBR003',name:'Amit Sharma',phone:'9876543212',address:'Danapur, Patna',age:32,height:180,weight:85,photo:'',package:'Monthly',startDate:'2025-04-01',endDate:'2025-05-01',type:'Personal Training',trainer:true,status:'expired'},
+  {id:'MBR004',name:'Neha Gupta',phone:'9876543213',address:'Rajendra Nagar, Patna',age:26,height:158,weight:52,photo:'',package:'Half Yearly',startDate:'2025-01-01',endDate:'2025-07-01',type:'General',trainer:false,status:'active'},
+  {id:'MBR005',name:'Vivek Jha',phone:'9876543214',address:'Patliputra, Patna',age:35,height:172,weight:90,photo:'',package:'Monthly',startDate:'2025-05-10',endDate:'2025-06-10',type:'General',trainer:false,status:'active'},
+  {id:'MBR006',name:'Sonal Rai',phone:'9876543215',address:'Ashok Rajpath, Patna',age:22,height:160,weight:50,photo:'',package:'Quarterly',startDate:'2025-03-15',endDate:'2025-06-15',type:'Personal Training',trainer:true,status:'expiring'},
+  {id:'MBR007',name:'Deepak Mishra',phone:'9876543216',address:'Bankipur, Patna',age:40,height:168,weight:82,photo:'',package:'Monthly',startDate:'2025-04-10',endDate:'2025-05-10',type:'General',trainer:false,status:'expired'},
+  {id:'MBR008',name:'Kavita Pandey',phone:'9876543217',address:'Phulwari, Patna',age:30,height:155,weight:60,photo:'',package:'Annual',startDate:'2025-01-01',endDate:'2026-01-01',type:'General',trainer:false,status:'active'},
+  {id:'MBR009',name:'Rohan Tiwari',phone:'9876543218',address:'Anisabad, Patna',age:27,height:178,weight:75,photo:'',package:'Monthly',startDate:'2025-05-12',endDate:'2025-06-12',type:'General',trainer:true,status:'active'},
+  {id:'MBR010',name:'Ananya Das',phone:'9876543219',address:'Shastri Nagar, Patna',age:25,height:163,weight:58,photo:'',package:'Quarterly',startDate:'2025-04-01',endDate:'2025-07-01',type:'Personal Training',trainer:true,status:'active'},
+  {id:'MBR011',name:'Suresh Yadav',phone:'9876543220',address:'Mithapur, Patna',age:38,height:170,weight:88,photo:'',package:'Monthly',startDate:'2025-04-20',endDate:'2025-05-20',type:'General',trainer:false,status:'expired'},
+  {id:'MBR012',name:'Pooja Verma',phone:'9876543221',address:'Gardanibagh, Patna',age:29,height:157,weight:56,photo:'',package:'Half Yearly',startDate:'2025-02-01',endDate:'2025-08-01',type:'General',trainer:false,status:'active'},
+];
+const pendingRegistrations = [
+  {id:'P001',name:'Ravi Shankar',phone:'9123456789',address:'Gandhi Maidan, Patna',age:23,height:170,weight:65,package:'Monthly',trainer:false,submitted:'2025-05-18'},
+  {id:'P002',name:'Shruti Kumari',phone:'9234567890',address:'Rajiv Nagar, Patna',age:27,height:160,weight:54,package:'Quarterly',trainer:true,submitted:'2025-05-17'},
+  {id:'P003',name:'Manoj Prasad',phone:'9345678901',address:'Boring Canal, Patna',age:31,height:175,weight:80,package:'Monthly',trainer:false,submitted:'2025-05-16'},
+];
+const packages = [
+  {name:'Monthly',price:1500,duration:1,features:['Full gym access','Locker facility','Free trial class']},
+  {name:'Quarterly',price:4000,duration:3,features:['Full gym access','Locker facility','2 PT sessions','Diet consultation']},
+  {name:'Half Yearly',price:7000,duration:6,features:['Full gym access','Locker facility','5 PT sessions','Diet consultation','Body assessment']},
+  {name:'Annual',price:12000,duration:12,features:['Full gym access','Locker facility','12 PT sessions','Diet consultation','Body assessment','Guest passes x2']},
+];
+const trainers = [
+  {name:'Vikram Singh',specialty:'Strength & Conditioning',experience:'8 years',members:12,phone:'9800000001'},
+  {name:'Anjali Mehta',specialty:'Yoga & Flexibility',experience:'5 years',members:8,phone:'9800000002'},
+  {name:'Rohit Kumar',specialty:'Cardio & Endurance',experience:'6 years',members:10,phone:'9800000003'},
+  {name:'Seema Yadav',specialty:'Nutrition & Wellness',experience:'4 years',members:7,phone:'9800000004'},
+];
+const payments = [
+  {id:'PAY001',member:'Rahul Kumar',amount:1500,package:'Monthly',date:'2025-05-01',method:'UPI',status:'paid'},
+  {id:'PAY002',member:'Priya Singh',amount:4000,package:'Quarterly',date:'2025-03-01',method:'Cash',status:'paid'},
+  {id:'PAY003',member:'Neha Gupta',amount:7000,package:'Half Yearly',date:'2025-01-01',method:'Card',status:'paid'},
+  {id:'PAY004',member:'Kavita Pandey',amount:12000,package:'Annual',date:'2025-01-01',method:'UPI',status:'paid'},
+  {id:'PAY005',member:'Rohan Tiwari',amount:1500,package:'Monthly',date:'2025-05-12',method:'Cash',status:'paid'},
+  {id:'PAY006',member:'Ananya Das',amount:4000,package:'Quarterly',date:'2025-04-01',method:'UPI',status:'paid'},
+];
+const announcements = [
+  {id:1,title:'Gym Closed on 25th May',body:'The gym will remain closed on 25th May for maintenance. We apologize for the inconvenience.',date:'2025-05-15',priority:'high'},
+  {id:2,title:'New Yoga Classes Starting',body:'We are introducing morning yoga classes every Monday and Wednesday from 6:30 AM. Book your slot now!',date:'2025-05-10',priority:'normal'},
+  {id:3,title:'Refer a Friend – Get 1 Month Free',body:'Refer a friend and get one month of membership absolutely free! Offer valid till 30th June.',date:'2025-05-05',priority:'normal'},
+];
+
+// ===== STATE =====
+let currentPage = 'dashboard';
+let memberFilter = 'all';
+let memberSearch = '';
+let memberStatusFilter = 'all';
+let memberMonthFilter = '';
+let memberPage = 1;
+const PAGE_SIZE = 6;
+let addMemberForm = {};
+let charts = {};
+
+// ===== HELPERS =====
+function daysLeft(endDate){
+  const now = new Date();
+  const end = new Date(endDate);
+  return Math.ceil((end - now) / (1000*60*60*24));
+}
+function getStatus(m){
+  const d = daysLeft(m.endDate);
+  if(d < 0) return 'expired';
+  if(d <= 7) return 'expiring';
+  return 'active';
+}
+function progressPct(m){
+  const start = new Date(m.startDate);
+  const end = new Date(m.endDate);
+  const now = new Date();
+  const total = end - start;
+  const elapsed = now - start;
+  return Math.min(100, Math.max(0, Math.round((elapsed/total)*100)));
+}
+function initials(name){ return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function getStatusBadge(status){
+  if(status==='active') return '<span class="badge badge-active">● Active</span>';
+  if(status==='expired') return '<span class="badge badge-expired">● Expired</span>';
+  if(status==='expiring') return '<span class="badge badge-soon">● Expiring Soon</span>';
+  if(status==='pending') return '<span class="badge badge-pending">● Pending</span>';
+  return '';
+}
+function pkgDuration(pkg){
+  const p = packages.find(x=>x.name===pkg);
+  return p ? p.duration : 1;
+}
+function calcEndDate(start, pkg){
+  if(!start || !pkg) return '';
+  const d = new Date(start);
+  d.setMonth(d.getMonth() + pkgDuration(pkg));
+  return d.toISOString().split('T')[0];
+}
+
+// ===== NAVIGATION =====
+function navigate(page){
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const map = {dashboard:0,members:1,pending:2,packages:3,trainers:4,payments:5,announcements:6,settings:7};
+  document.querySelectorAll('.nav-item')[map[page]]?.classList.add('active');
+  const titles = {dashboard:'Dashboard',members:'Members',pending:'Pending Registrations',packages:'Packages',trainers:'Trainers',payments:'Payments',announcements:'Announcements',settings:'Settings'};
+  document.getElementById('page-title').textContent = titles[page]||page;
+  renderPage();
+}
+
+function renderPage(){
+  const el = document.getElementById('main-content');
+  if(currentPage==='dashboard') el.innerHTML = dashboardHTML();
+  else if(currentPage==='members') el.innerHTML = membersHTML();
+  else if(currentPage==='pending') el.innerHTML = pendingHTML();
+  else if(currentPage==='packages') el.innerHTML = packagesHTML();
+  else if(currentPage==='trainers') el.innerHTML = trainersHTML();
+  else if(currentPage==='payments') el.innerHTML = paymentsHTML();
+  else if(currentPage==='announcements') el.innerHTML = announcementsHTML();
+  else if(currentPage==='settings') el.innerHTML = settingsHTML();
+  if(currentPage==='dashboard') initCharts();
+}
+
+// ===== DASHBOARD =====
+function dashboardHTML(){
+  const all = members.map(m=>({...m, status: getStatus(m)}));
+  const total = all.length;
+  const active = all.filter(m=>m.status==='active').length;
+  const expired = all.filter(m=>m.status==='expired').length;
+  const expiring = all.filter(m=>m.status==='expiring').length;
+  const recent = [...all].sort((a,b)=>new Date(b.startDate)-new Date(a.startDate)).slice(0,10);
+  return `
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat-card" style="--c:var(--accent)"><div class="stat-icon" style="background:rgba(108,99,255,.15);font-size:20px">👥</div><div class="stat-val">${total}</div><div class="stat-label">Total Members</div><div class="stat-delta">↑ 4 this month</div></div>
+    <div class="stat-card green" style="--c:var(--green)"><div class="stat-icon" style="background:rgba(0,212,170,.15);font-size:20px">✅</div><div class="stat-val" style="color:var(--green)">${active}</div><div class="stat-label">Active Members</div><div class="stat-delta">↑ 2 this week</div></div>
+    <div class="stat-card red" style="--c:var(--red)"><div class="stat-icon" style="background:rgba(255,107,107,.15);font-size:20px">❌</div><div class="stat-val" style="color:var(--red)">${expired}</div><div class="stat-label">Expired Members</div><div class="stat-delta" style="color:var(--red)">↓ 1 recovered</div></div>
+    <div class="stat-card yellow" style="--c:var(--yellow)"><div class="stat-icon" style="background:rgba(255,169,77,.15);font-size:20px">⏰</div><div class="stat-val" style="color:var(--yellow)">${expiring}</div><div class="stat-label">Expiring in 7 Days</div><div class="stat-delta" style="color:var(--yellow)">Send reminders</div></div>
+  </div>
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card"><div class="section-title">Membership Growth</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <select onchange="updateGrowthChart(this.value)" id="growth-period" style="font-size:12px;padding:5px 10px"><option value="6">Last 6 Months</option><option value="12">Last 12 Months</option><option value="3">Last 3 Months</option></select>
+      </div>
+      <div class="chart-wrap"><canvas id="growthChart"></canvas></div>
+    </div>
+    <div class="card"><div class="section-title">Member Type Distribution</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="typeChart"></canvas></div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block"></span>General</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:50%;background:var(--accent2);display:inline-block"></span>Personal Training</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">Recent Registrations</div>
+    <div style="overflow-x:auto">
+    <table class="rtable">
+      <thead><tr><th>Member</th><th>ID</th><th>Phone</th><th>Package</th><th>Start Date</th><th>Status</th></tr></thead>
+      <tbody>
+        ${recent.map(m=>`<tr>
+          <td><div style="display:flex;align-items:center;gap:8px"><div class="member-photo" style="width:30px;height:30px;font-size:11px;border-radius:50%;background:var(--dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent)">${initials(m.name)}</div>${m.name}</div></td>
+          <td><code style="font-size:11px;color:var(--accent)">${m.id}</code></td>
+          <td style="color:var(--muted)">${m.phone}</td>
+          <td>${m.package}</td>
+          <td style="color:var(--muted)">${fmtDate(m.startDate)}</td>
+          <td>${getStatusBadge(m.status)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>`;
+}
+function initCharts(){
+  if(charts.growth){ charts.growth.destroy(); }
+  if(charts.type){ charts.type.destroy(); }
+  const gCtx = document.getElementById('growthChart')?.getContext('2d');
+  const tCtx = document.getElementById('typeChart')?.getContext('2d');
+  if(gCtx){
+    charts.growth = new Chart(gCtx,{type:'line',data:{labels:['Dec','Jan','Feb','Mar','Apr','May'],datasets:[{label:'New Members',data:[4,6,5,8,7,10],borderColor:'#6c63ff',backgroundColor:'rgba(108,99,255,.12)',tension:.4,fill:true,pointBackgroundColor:'#6c63ff',pointRadius:4},{label:'Renewals',data:[3,4,6,5,7,8],borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,.08)',tension:.4,fill:true,pointBackgroundColor:'#00d4aa',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#8b90b0',font:{size:11},boxWidth:10}}},scales:{x:{grid:{color:'rgba(42,46,74,.6)'},ticks:{color:'#8b90b0',font:{size:11}}},y:{grid:{color:'rgba(42,46,74,.6)'},ticks:{color:'#8b90b0',font:{size:11}}}}}});
+  }
+  if(tCtx){
+    const gen = members.filter(m=>m.type==='General').length;
+    const pt = members.filter(m=>m.type==='Personal Training').length;
+    charts.type = new Chart(tCtx,{type:'doughnut',data:{labels:['General','Personal Training'],datasets:[{data:[gen,pt],backgroundColor:['#6c63ff','#00d4aa'],borderColor:'transparent',borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false}}}});
+  }
+}
+function updateGrowthChart(months){
+  if(!charts.growth) return;
+  const sets = {3:{l:['Mar','Apr','May'],n:[8,7,10],r:[5,7,8]},6:{l:['Dec','Jan','Feb','Mar','Apr','May'],n:[4,6,5,8,7,10],r:[3,4,6,5,7,8]},12:{l:['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May'],n:[2,3,4,5,3,4,4,6,5,8,7,10],r:[1,2,3,4,5,3,3,4,6,5,7,8]}};
+  const s = sets[months]||sets[6];
+  charts.growth.data.labels = s.l;
+  charts.growth.data.datasets[0].data = s.n;
+  charts.growth.data.datasets[1].data = s.r;
+  charts.growth.update();
+}
+
+// ===== MEMBERS =====
+function getFilteredMembers(){
+  let list = members.map(m=>({...m, status: getStatus(m)}));
+  if(memberFilter !== 'all') list = list.filter(m=>m.status===memberFilter);
+  if(memberStatusFilter !== 'all') list = list.filter(m=>m.status===memberStatusFilter);
+  if(memberMonthFilter) list = list.filter(m=>m.startDate.startsWith(memberMonthFilter));
+  if(memberSearch){
+    const q = memberSearch.toLowerCase();
+    list = list.filter(m=>m.name.toLowerCase().includes(q)||m.phone.includes(q)||m.id.toLowerCase().includes(q));
+  }
+  return list;
+}
+function membersHTML(){
+  const all = members.map(m=>({...m, status: getStatus(m)}));
+  const total = all.length;
+  const active = all.filter(m=>m.status==='active').length;
+  const expired = all.filter(m=>m.status==='expired').length;
+  const expiring = all.filter(m=>m.status==='expiring').length;
+  const filtered = getFilteredMembers();
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageMembers = filtered.slice((memberPage-1)*PAGE_SIZE, memberPage*PAGE_SIZE);
+  return `
+  <div class="page-header">
+    <div class="page-title">Members <span style="font-size:14px;font-weight:400;color:var(--muted);margin-left:8px">${filtered.length} of ${total}</span></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-lg" onclick="showQRModal()">📱 QR Code</button>
+      <button class="btn btn-primary btn-lg" onclick="showAddMember()">+ Add Member</button>
+    </div>
+  </div>
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat-card ${memberFilter==='all'?'selected':''}" style="--c:var(--accent);padding:14px 16px" onclick="setFilter('all')">
+      <div style="font-size:22px;font-weight:700;color:var(--accent)">${total}</div><div style="font-size:12px;color:var(--muted)">Total Members</div>
+    </div>
+    <div class="stat-card ${memberFilter==='active'?'selected green':''}" style="--c:var(--green);padding:14px 16px" onclick="setFilter('active')">
+      <div style="font-size:22px;font-weight:700;color:var(--green)">${active}</div><div style="font-size:12px;color:var(--muted)">Active</div>
+    </div>
+    <div class="stat-card ${memberFilter==='expired'?'selected red':''}" style="--c:var(--red);padding:14px 16px" onclick="setFilter('expired')">
+      <div style="font-size:22px;font-weight:700;color:var(--red)">${expired}</div><div style="font-size:12px;color:var(--muted)">Expired</div>
+    </div>
+    <div class="stat-card ${memberFilter==='expiring'?'selected yellow':''}" style="--c:var(--yellow);padding:14px 16px" onclick="setFilter('expiring')">
+      <div style="font-size:22px;font-weight:700;color:var(--yellow)">${expiring}</div><div style="font-size:12px;color:var(--muted)">Expiring Soon</div>
+    </div>
+  </div>
+  <div class="filters-row">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search by name, phone or ID..." value="${memberSearch}" oninput="updateSearch(this.value)" id="member-search"/>
+    </div>
+    <select onchange="updateStatusFilter(this.value)">
+      <option value="all" ${memberStatusFilter==='all'?'selected':''}>All Status</option>
+      <option value="active" ${memberStatusFilter==='active'?'selected':''}>Active</option>
+      <option value="expired" ${memberStatusFilter==='expired'?'selected':''}>Expired</option>
+      <option value="expiring" ${memberStatusFilter==='expiring'?'selected':''}>Expiring Soon</option>
+    </select>
+    <select onchange="updateMonthFilter(this.value)">
+      <option value="">All Months</option>
+      <option value="2025-01">January 2025</option>
+      <option value="2025-02">February 2025</option>
+      <option value="2025-03">March 2025</option>
+      <option value="2025-04">April 2025</option>
+      <option value="2025-05">May 2025</option>
+    </select>
+  </div>
+  ${pageMembers.length===0?`<div class="empty-state"><div class="icon">🔍</div><p>No members found matching your filters</p></div>`:''}
+  <div class="members-grid">
+    ${pageMembers.map(m=>memberCardHTML(m)).join('')}
+  </div>
+  ${totalPages>1?`<div class="pager">
+    <button class="pager-btn" onclick="setPage(${memberPage-1})" ${memberPage===1?'disabled':''}>‹ Prev</button>
+    ${Array.from({length:totalPages},(_,i)=>`<button class="pager-btn ${memberPage===i+1?'active':''}" onclick="setPage(${i+1})">${i+1}</button>`).join('')}
+    <button class="pager-btn" onclick="setPage(${memberPage+1})" ${memberPage===totalPages?'disabled':''}>Next ›</button>
+  </div>`:''}`;
+}
+function memberCardHTML(m){
+  const days = daysLeft(m.endDate);
+  const pct = progressPct(m);
+  const pctColor = m.status==='active'?'var(--green)':m.status==='expiring'?'var(--yellow)':'var(--red)';
+  return `<div class="member-card">
+    <div style="position:absolute;top:14px;right:14px">${getStatusBadge(m.status)}</div>
+    <div class="member-top">
+      <div class="member-photo">${initials(m.name)}</div>
+      <div>
+        <h3>${m.name}</h3>
+        <div class="member-id">${m.id}</div>
+        <div class="member-phone">📞 ${m.phone}</div>
+      </div>
+    </div>
+    <div class="member-pkg"><strong>${m.package}</strong> · <span>${m.type}</span></div>
+    <div class="member-dates">📅 ${fmtDate(m.startDate)} → ${fmtDate(m.endDate)}</div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Progress</span><span style="color:${pctColor}">${days>0?days+' days left':'Expired'}</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pctColor}"></div></div>
+    </div>
+    <div class="member-actions">
+      <button class="btn btn-success" onclick="showRenewModal('${m.id}')">🔄 Renew</button>
+      <button class="btn btn-ghost" onclick="editMember('${m.id}')">✏️ Edit</button>
+      <button class="btn btn-ghost" onclick="viewProfile('${m.id}')">👁 View</button>
+      <button class="btn btn-danger" onclick="deleteMember('${m.id}')">🗑</button>
+    </div>
+  </div>`;
+}
+function setFilter(f){ memberFilter=f; memberPage=1; renderPage(); }
+function updateSearch(v){ memberSearch=v; memberPage=1; renderPage(); }
+function updateStatusFilter(v){ memberStatusFilter=v; memberPage=1; renderPage(); }
+function updateMonthFilter(v){ memberMonthFilter=v; memberPage=1; renderPage(); }
+function setPage(p){ memberPage=p; renderPage(); window.scrollTo(0,0); }
+
+// ===== ADD MEMBER MODAL =====
+function showAddMember(){
+  const id = 'MBR0'+String(members.length+1).padStart(2,'0');
+  document.getElementById('modal-container').innerHTML = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2>➕ Add New Member</h2>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div style="margin-bottom:16px">
+        <div class="form-label">Membership Type</div>
+        <div class="toggle-group">
+          <div class="toggle-option active" id="tog-general" onclick="setMemberType('general')">🏋 General Membership</div>
+          <div class="toggle-option" id="tog-pt" onclick="setMemberType('pt')">💪 + Personal Training</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Member ID</label><input class="form-input" value="${id}" id="am-id" readonly/></div>
+        <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" placeholder="Enter full name" id="am-name"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Phone Number *</label><input class="form-input" placeholder="10-digit number" id="am-phone" maxlength="10"/></div>
+        <div class="form-group"><label class="form-label">Age</label><input class="form-input" type="number" placeholder="Age" id="am-age"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Height (cm)</label><input class="form-input" type="number" placeholder="Height" id="am-height"/></div>
+        <div class="form-group"><label class="form-label">Weight (kg)</label><input class="form-input" type="number" placeholder="Weight" id="am-weight"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Address</label><input class="form-input" placeholder="Full address" id="am-address"/></div>
+      <div class="form-group"><label class="form-label">Photo Upload (max 2MB)</label><input class="form-input" type="file" accept="image/*" style="padding:8px"/></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Package *</label>
+          <select class="form-input" id="am-package" onchange="calcEnd()">
+            <option value="">Select package</option>
+            ${packages.map(p=>`<option value="${p.name}">${p.name} (₹${p.price.toLocaleString('en-IN')})</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Start Date *</label><input class="form-input" type="date" id="am-start" onchange="calcEnd()" value="${new Date().toISOString().split('T')[0]}"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">End Date (auto-calculated)</label><input class="form-input" id="am-end" readonly placeholder="Will be auto-filled"/></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+        <button class="btn btn-ghost btn-lg" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary btn-lg" onclick="submitAddMember()">Add Member</button>
+      </div>
+    </div>
+  </div>`;
+}
+let amType = 'general';
+function setMemberType(t){ amType=t; document.getElementById('tog-general').className='toggle-option'+(t==='general'?' active':''); document.getElementById('tog-pt').className='toggle-option'+(t==='pt'?' active':''); }
+function calcEnd(){ const s=document.getElementById('am-start')?.value; const p=document.getElementById('am-package')?.value; if(s&&p){ document.getElementById('am-end').value=calcEndDate(s,p); } }
+function submitAddMember(){
+  const name=document.getElementById('am-name')?.value;
+  const phone=document.getElementById('am-phone')?.value;
+  const pkg=document.getElementById('am-package')?.value;
+  const start=document.getElementById('am-start')?.value;
+  if(!name||!phone||!pkg||!start){ alert('Please fill all required fields'); return; }
+  if(phone.length!==10){ alert('Enter a valid 10-digit phone number'); return; }
+  if(members.find(m=>m.phone===phone)){ alert('A member with this phone number already exists'); return; }
+  const end = calcEndDate(start,pkg);
+  members.push({id:document.getElementById('am-id').value,name,phone,address:document.getElementById('am-address')?.value||'',age:document.getElementById('am-age')?.value||0,height:document.getElementById('am-height')?.value||0,weight:document.getElementById('am-weight')?.value||0,photo:'',package:pkg,startDate:start,endDate:end,type:amType==='pt'?'Personal Training':'General',trainer:amType==='pt',status:'active'});
+  closeModal();
+  renderPage();
+}
+
+// ===== RENEW MODAL =====
+function showRenewModal(id){
+  const m = members.find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('modal-container').innerHTML = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header"><h2>🔄 Renew Membership</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:20px">
+        <div style="font-weight:600;font-size:15px;margin-bottom:8px">${m.name} · <code style="color:var(--accent);font-size:13px">${m.id}</code></div>
+        <div style="font-size:12px;color:var(--muted)">Current: ${m.package} · Ends ${fmtDate(m.endDate)}</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Package</label>
+        <select class="form-input" id="rn-pkg" onchange="calcRenewEnd()">
+          ${packages.map(p=>`<option value="${p.name}" ${p.name===m.package?'selected':''}>${p.name} — ₹${p.price.toLocaleString('en-IN')}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">New Start Date</label><input class="form-input" type="date" id="rn-start" value="${new Date().toISOString().split('T')[0]}" onchange="calcRenewEnd()"/></div>
+      <div class="form-group"><label class="form-label">New End Date (auto)</label><input class="form-input" id="rn-end" readonly/></div>
+      <div class="form-group"><label class="form-label">Payment Method</label><select class="form-input"><option>UPI</option><option>Cash</option><option>Card</option></select></div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+        <button class="btn btn-ghost btn-lg" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-success btn-lg" onclick="confirmRenew('${id}')">Confirm Renewal</button>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(()=>{ document.getElementById('rn-pkg')&&calcRenewEnd(); },50);
+}
+function calcRenewEnd(){ const s=document.getElementById('rn-start')?.value; const p=document.getElementById('rn-pkg')?.value; if(s&&p) document.getElementById('rn-end').value=calcEndDate(s,p); }
+function confirmRenew(id){
+  const m=members.find(x=>x.id===id);
+  if(!m) return;
+  m.package=document.getElementById('rn-pkg').value;
+  m.startDate=document.getElementById('rn-start').value;
+  m.endDate=document.getElementById('rn-end').value;
+  m.status=getStatus(m);
+  closeModal(); renderPage();
+}
+
+// ===== QR MODAL =====
+function showQRModal(){
+  document.getElementById('modal-container').innerHTML = `
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="text-align:center">
+      <div class="modal-header"><h2>📱 QR Code Registration</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <p style="color:var(--muted);margin-bottom:20px;font-size:13px">Members scan this QR to self-register. Submissions go to Pending Registrations for your approval.</p>
+      <div class="qr-box">
+        <svg width="130" height="130" viewBox="0 0 130 130">
+          <rect x="5" y="5" width="40" height="40" rx="4" fill="none" stroke="#6c63ff" stroke-width="3"/>
+          <rect x="15" y="15" width="20" height="20" rx="2" fill="#6c63ff"/>
+          <rect x="85" y="5" width="40" height="40" rx="4" fill="none" stroke="#6c63ff" stroke-width="3"/>
+          <rect x="95" y="15" width="20" height="20" rx="2" fill="#6c63ff"/>
+          <rect x="5" y="85" width="40" height="40" rx="4" fill="none" stroke="#6c63ff" stroke-width="3"/>
+          <rect x="15" y="95" width="20" height="20" rx="2" fill="#6c63ff"/>
+          <rect x="55" y="5" width="8" height="8" fill="#6c63ff"/>
+          <rect x="67" y="5" width="8" height="8" fill="#6c63ff"/>
+          <rect x="55" y="17" width="8" height="8" fill="#6c63ff"/>
+          <rect x="55" y="55" width="8" height="8" fill="#6c63ff"/>
+          <rect x="67" y="67" width="8" height="8" fill="#6c63ff"/>
+          <rect x="79" y="55" width="8" height="8" fill="#6c63ff"/>
+          <rect x="91" y="55" width="8" height="8" fill="#6c63ff"/>
+          <rect x="103" y="67" width="8" height="8" fill="#6c63ff"/>
+          <rect x="55" y="79" width="8" height="8" fill="#6c63ff"/>
+          <rect x="67" y="91" width="8" height="8" fill="#6c63ff"/>
+          <rect x="79" y="103" width="8" height="8" fill="#6c63ff"/>
+          <rect x="91" y="91" width="8" height="8" fill="#6c63ff"/>
+          <rect x="103" y="103" width="8" height="8" fill="#6c63ff"/>
+          <rect x="103" y="115" width="8" height="8" fill="#6c63ff"/>
+          <rect x="115" y="91" width="8" height="8" fill="#6c63ff"/>
+        </svg>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:var(--muted);word-break:break-all;background:var(--bg);padding:8px;border-radius:8px;font-family:monospace">https://ironfit.gym/register?gym=ironfit-patna</div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:20px">
+        <button class="btn btn-ghost btn-lg">📋 Copy Link</button>
+        <button class="btn btn-primary btn-lg">⬇ Download QR</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== VIEW PROFILE =====
+function viewProfile(id){
+  const m=members.find(x=>x.id===id);
+  if(!m) return;
+  const s=getStatus(m); const d=daysLeft(m.endDate); const pct=progressPct(m);
+  const pctColor=s==='active'?'var(--green)':s==='expiring'?'var(--yellow)':'var(--red)';
+  document.getElementById('modal-container').innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal modal-lg">
+      <div class="modal-header"><h2>👤 Member Profile</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:20px">
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--dim);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--accent);border:2px solid var(--border);flex-shrink:0">${initials(m.name)}</div>
+        <div style="flex:1">
+          <h2 style="font-size:20px;margin-bottom:4px">${m.name}</h2>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <code style="color:var(--accent);font-size:13px">${m.id}</code>
+            ${getStatusBadge(s)}
+            <span class="chip">${m.type}</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:14px">
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Phone</div><div>📞 ${m.phone}</div></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Address</div><div>📍 ${m.address||'—'}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;background:var(--bg);border-radius:10px;padding:14px;margin-bottom:16px">
+        <div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--text)">${m.age||'—'}</div><div style="font-size:11px;color:var(--muted)">Age</div></div>
+        <div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--text)">${m.height||'—'}</div><div style="font-size:11px;color:var(--muted)">Height (cm)</div></div>
+        <div style="text-align:center"><div style="font-size:22px;font-weight:700;color:var(--text)">${m.weight||'—'}</div><div style="font-size:11px;color:var(--muted)">Weight (kg)</div></div>
+      </div>
+      <div class="card-sm" style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+          <div><div style="font-size:12px;color:var(--muted)">Package</div><div style="font-weight:600">${m.package}</div></div>
+          <div><div style="font-size:12px;color:var(--muted)">Start</div><div>${fmtDate(m.startDate)}</div></div>
+          <div><div style="font-size:12px;color:var(--muted)">End</div><div>${fmtDate(m.endDate)}</div></div>
+        </div>
+        <div class="progress-wrap"><div class="progress-label"><span style="font-size:11px;color:var(--muted)">Membership Progress</span><span style="font-size:11px;color:${pctColor}">${d>0?d+' days left':'Expired'}</span></div><div class="progress-bar" style="height:7px"><div class="progress-fill" style="width:${pct}%;background:${pctColor}"></div></div></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-success btn-lg" onclick="closeModal();showRenewModal('${m.id}')">🔄 Renew</button>
+        <button class="btn btn-ghost btn-lg" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>`;
+}
+function editMember(id){ const m=members.find(x=>x.id===id); if(!m) return; alert(`Edit member: ${m.name}\n(In production, this opens the edit form pre-filled with member data)`); }
+function deleteMember(id){
+  if(confirm('Delete this member? This cannot be undone.')){
+    const idx=members.findIndex(x=>x.id===id);
+    if(idx>-1){ members.splice(idx,1); renderPage(); }
+  }
+}
+
+// ===== PENDING =====
+function pendingHTML(){
+  const plist = [...pendingRegistrations];
+  return `
+  <div class="page-header">
+    <div class="page-title">Pending Registrations <span style="background:var(--accent3);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px">${plist.length}</span></div>
+  </div>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:20px">These members registered via QR code and are awaiting your approval.</p>
+  ${plist.length===0?`<div class="empty-state"><div class="icon">✅</div><p>No pending registrations</p></div>`:''}
+  ${plist.map(p=>`<div class="pending-card">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:46px;height:46px;border-radius:50%;background:var(--dim);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:var(--blue)">${initials(p.name)}</div>
+        <div>
+          <div style="font-weight:600;font-size:15px">${p.name}</div>
+          <div style="font-size:12px;color:var(--muted)">📞 ${p.phone} · Submitted ${fmtDate(p.submitted)}</div>
+        </div>
+      </div>
+      ${getStatusBadge('pending')}
+    </div>
+    <div class="pending-info">
+      <div class="pending-field"><span>Address</span><strong>${p.address}</strong></div>
+      <div class="pending-field"><span>Age</span><strong>${p.age} yrs</strong></div>
+      <div class="pending-field"><span>Height / Weight</span><strong>${p.height} cm / ${p.weight} kg</strong></div>
+      <div class="pending-field"><span>Package</span><strong>${p.package}</strong></div>
+      <div class="pending-field"><span>Personal Training</span><strong>${p.trainer?'Yes':'No'}</strong></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-success btn-lg" onclick="approvePending('${p.id}')">✅ Approve</button>
+      <button class="btn btn-danger btn-lg" onclick="rejectPending('${p.id}')">❌ Reject</button>
+    </div>
+  </div>`).join('')}`;
+}
+function approvePending(id){
+  const idx=pendingRegistrations.findIndex(x=>x.id===id);
+  if(idx<0) return;
+  const p=pendingRegistrations[idx];
+  const start=new Date().toISOString().split('T')[0];
+  const end=calcEndDate(start,p.package);
+  members.push({id:'MBR0'+String(members.length+1).padStart(2,'0'),name:p.name,phone:p.phone,address:p.address,age:p.age,height:p.height,weight:p.weight,photo:'',package:p.package,startDate:start,endDate:end,type:p.trainer?'Personal Training':'General',trainer:p.trainer,status:'active'});
+  pendingRegistrations.splice(idx,1);
+  document.getElementById('pending-count').textContent=pendingRegistrations.length||'';
+  renderPage();
+}
+function rejectPending(id){
+  if(confirm('Reject this registration?')){
+    const idx=pendingRegistrations.findIndex(x=>x.id===id);
+    if(idx>-1){ pendingRegistrations.splice(idx,1); document.getElementById('pending-count').textContent=pendingRegistrations.length||''; renderPage(); }
+  }
+}
+
+// ===== PACKAGES =====
+function packagesHTML(){
+  return `
+  <div class="page-header">
+    <div class="page-title">Membership Packages</div>
+    <button class="btn btn-primary btn-lg" onclick="alert('Add Package form coming soon')">+ New Package</button>
+  </div>
+  <div class="grid-4" style="margin-bottom:24px">
+    ${packages.map((p,i)=>`<div class="pkg-card">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.7px">${p.name}</div>
+      <div class="pkg-price">₹${p.price.toLocaleString('en-IN')}</div>
+      <div class="pkg-per">${p.duration} month${p.duration>1?'s':''}</div>
+      <hr class="divider"/>
+      ${p.features.map(f=>`<div class="pkg-feature">${f}</div>`).join('')}
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <button class="btn btn-ghost" style="flex:1" onclick="alert('Edit package')">✏️ Edit</button>
+        <button class="btn btn-danger" onclick="alert('Delete package')">🗑</button>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div class="card">
+    <div class="section-title">Package Popularity</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+      ${packages.map(p=>{const cnt=members.filter(m=>m.package===p.name).length; const pct=Math.round((cnt/members.length)*100)||0; return `<div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px"><span style="color:var(--muted)">${p.name}</span><span style="font-weight:600">${cnt} members</span></div>
+        <div class="progress-bar" style="height:7px"><div class="progress-fill" style="width:${pct}%;background:var(--accent)"></div></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${pct}% of total</div>
+      </div>`}).join('')}
+    </div>
+  </div>`;
+}
+
+// ===== TRAINERS =====
+function trainersHTML(){
+  return `
+  <div class="page-header">
+    <div class="page-title">Trainers</div>
+    <button class="btn btn-primary btn-lg" onclick="alert('Add Trainer form coming soon')">+ Add Trainer</button>
+  </div>
+  <div class="grid-4">
+    ${trainers.map((t,i)=>{const colors=['var(--accent)','var(--accent2)','var(--accent4)','var(--accent3)'];return`<div class="trainer-card">
+      <div class="trainer-avatar" style="color:${colors[i]};border-color:${colors[i]}33">${initials(t.name)}</div>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:4px">${t.name}</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${t.specialty}</div>
+      <div style="display:flex;justify-content:center;gap:16px;margin-bottom:12px">
+        <div><div style="font-size:18px;font-weight:700;color:${colors[i]}">${t.members}</div><div style="font-size:11px;color:var(--muted)">Members</div></div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.8">${t.experience}</div><div style="font-size:11px;color:var(--muted)">Experience</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">📞 ${t.phone}</div>
+      <button class="btn btn-ghost" style="width:100%">View Schedule</button>
+    </div>`}).join('')}
+  </div>`;
+}
+
+// ===== PAYMENTS =====
+function paymentsHTML(){
+  const total=payments.reduce((s,p)=>s+p.amount,0);
+  return `
+  <div class="page-header">
+    <div class="page-title">Payments</div>
+    <button class="btn btn-ghost btn-lg" onclick="alert('Export payments CSV')">📤 Export</button>
+  </div>
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="stat-card" style="--c:var(--green)"><div style="font-size:22px;font-weight:700;color:var(--green)">₹${total.toLocaleString('en-IN')}</div><div style="font-size:12px;color:var(--muted)">Total Revenue</div></div>
+    <div class="stat-card" style="--c:var(--accent)"><div style="font-size:22px;font-weight:700;color:var(--accent)">${payments.length}</div><div style="font-size:12px;color:var(--muted)">Transactions</div></div>
+    <div class="stat-card" style="--c:var(--accent2)"><div style="font-size:22px;font-weight:700;color:var(--accent2)">₹${Math.round(total/payments.length).toLocaleString('en-IN')}</div><div style="font-size:12px;color:var(--muted)">Avg. Payment</div></div>
+    <div class="stat-card" style="--c:var(--yellow)"><div style="font-size:22px;font-weight:700;color:var(--yellow)">₹${(payments.filter(p=>p.method==='UPI').reduce((s,p)=>s+p.amount,0)).toLocaleString('en-IN')}</div><div style="font-size:12px;color:var(--muted)">via UPI</div></div>
+  </div>
+  <div class="card">
+    <div class="section-title">Transaction History</div>
+    <div style="overflow-x:auto">
+    <table class="rtable">
+      <thead><tr><th>Txn ID</th><th>Member</th><th>Package</th><th>Amount</th><th>Date</th><th>Method</th><th>Status</th></tr></thead>
+      <tbody>
+        ${payments.map(p=>`<tr>
+          <td><code style="font-size:11px;color:var(--accent)">${p.id}</code></td>
+          <td>${p.member}</td>
+          <td style="color:var(--muted)">${p.package}</td>
+          <td style="font-weight:600;color:var(--green)">₹${p.amount.toLocaleString('en-IN')}</td>
+          <td style="color:var(--muted)">${fmtDate(p.date)}</td>
+          <td><span class="chip">${p.method}</span></td>
+          <td><span class="badge badge-active">✓ Paid</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>`;
+}
+
+// ===== ANNOUNCEMENTS =====
+function announcementsHTML(){
+  return `
+  <div class="page-header">
+    <div class="page-title">Announcements</div>
+    <button class="btn btn-primary btn-lg" onclick="showAddAnn()">+ New Announcement</button>
+  </div>
+  ${announcements.map(a=>`<div class="ann-card" style="border-left-color:${a.priority==='high'?'var(--red)':'var(--accent)'}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h3 style="font-size:15px;font-weight:600">${a.title}</h3>
+      ${a.priority==='high'?'<span class="badge badge-expired">High Priority</span>':'<span class="badge badge-active">Normal</span>'}
+    </div>
+    <p style="color:var(--muted);font-size:13px;margin-top:8px;line-height:1.6">${a.body}</p>
+    <div class="ann-meta">📅 ${fmtDate(a.date)} &nbsp;·&nbsp; <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px" onclick="deleteAnn(${a.id})">Delete</button></div>
+  </div>`).join('')}`;
+}
+function showAddAnn(){
+  document.getElementById('modal-container').innerHTML=`
+  <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header"><h2>📢 New Announcement</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div class="form-group"><label class="form-label">Title</label><input class="form-input" placeholder="Announcement title" id="ann-title"/></div>
+      <div class="form-group"><label class="form-label">Message</label><textarea class="form-input" rows="4" placeholder="Announcement details..." id="ann-body" style="resize:vertical"></textarea></div>
+      <div class="form-group"><label class="form-label">Priority</label><select class="form-input" id="ann-prio"><option value="normal">Normal</option><option value="high">High Priority</option></select></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+        <button class="btn btn-ghost btn-lg" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary btn-lg" onclick="submitAnn()">Post Announcement</button>
+      </div>
+    </div>
+  </div>`;
+}
+function submitAnn(){
+  const title=document.getElementById('ann-title')?.value;
+  const body=document.getElementById('ann-body')?.value;
+  const priority=document.getElementById('ann-prio')?.value;
+  if(!title||!body){ alert('Fill all fields'); return; }
+  announcements.unshift({id:Date.now(),title,body,date:new Date().toISOString().split('T')[0],priority});
+  closeModal(); renderPage();
+}
+function deleteAnn(id){
+  if(confirm('Delete this announcement?')){ const i=announcements.findIndex(x=>x.id===id); if(i>-1){ announcements.splice(i,1); renderPage(); } }
+}
+
+// ===== SETTINGS =====
+function settingsHTML(){
+  return `
+  <div class="page-title" style="margin-bottom:20px">Settings</div>
+  <div class="settings-section">
+    <h3>🏋 Gym Information</h3>
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="form-group"><label class="form-label">Gym Name</label><input class="form-input" value="IronFit Gym"/></div>
+      <div class="form-group"><label class="form-label">City</label><input class="form-input" value="Patna, Bihar"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" value="123 Boring Road, Patna, Bihar 800001"/></div>
+    <div class="form-row" style="margin-top:14px">
+      <div class="form-group"><label class="form-label">Contact Phone</label><input class="form-input" value="9876500000"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" value="admin@ironfit.gym"/></div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:10px">Save Changes</button>
+  </div>
+  <div class="settings-section">
+    <h3>🔔 Notifications</h3>
+    ${[['Send expiry reminders (7 days)',true],['WhatsApp notifications',true],['New member alerts',true],['Payment confirmation SMS',false]].map(([label,on])=>`<div class="settings-row"><span style="font-size:14px">${label}</span><div class="toggle-sw ${on?'on':''}" onclick="this.classList.toggle('on')"></div></div>`).join('')}
+  </div>
+  <div class="settings-section">
+    <h3>🔐 Admin Account</h3>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Admin Name</label><input class="form-input" value="Admin User"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" value="admin@ironfit.gym"/></div>
+    </div>
+    <div class="form-group" style="margin-top:10px"><label class="form-label">New Password</label><input class="form-input" type="password" placeholder="Leave blank to keep current"/></div>
+    <button class="btn btn-primary" style="margin-top:10px">Update Account</button>
+  </div>`;
+}
+
+function closeModal(){ document.getElementById('modal-container').innerHTML=''; }
+
+// ===== INIT =====
+renderPage();
+</script>
+</body>
+</html>
